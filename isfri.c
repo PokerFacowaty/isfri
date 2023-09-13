@@ -108,35 +108,9 @@ static void __exit chardev_exit(void){
 
 // Called when a procces tries to open the device file
 static int device_open(struct inode *inode, struct file *file){
-	struct timespec64 now;
-	struct tm tm_now;
 
 	if (atomic_cmpxchg(&already_open, CDEV_NOT_USED, CDEV_EXCLUSIVE_OPEN))
 		return -EBUSY;
-	
-	/* Yes, the time is in UTC, since I spent way too much time
-	 * on checking if TZ info can be obtained from the kernel
-	 * and the only solution that seemed viable kept telling
-	 * me I'm in UTC, so screw it, I guess I was after all. 
-	 *
-	 * This could maybe be done with a parameter at least? */
-	ktime_get_real_ts64(&now);
-	time64_to_tm(now.tv_sec, 0, &tm_now);
-	
-	switch(tm_now.tm_wday){
-		case 0:
-			sprintf(msg, "No, but it's still the weekend!\n");
-			break;
-		case 6:
-			sprintf(msg, "You just missed it!\n");
-			break;
-		case 5:
-			sprintf(msg, "IT IS!\n");
-			break;
-		default:
-			sprintf(msg, "Nope.\n");
-			break;
-	}
 
 	// Increment the usage count
 	try_module_get(THIS_MODULE);
@@ -161,9 +135,39 @@ static ssize_t device_read(struct file *filp,
 			   size_t length,
 			   loff_t *offset){
 	
+	struct timespec64 now;
+	struct tm tm_now;
 	// Number of bytes actually written to the buffer
 	int bytes_read = 0;
 	const char *msg_ptr = msg;
+
+	/* Moved here from device_open as per jpodster comment:
+	 * https://www.reddit.com/r/linux/comments/16hipvg/comment/k0ev8ds/
+	 * Thank you! */
+
+	/* Yes, the time is in UTC, since I spent way too much time
+	 * on checking if TZ info can be obtained from the kernel
+	 * and the only solution that seemed viable kept telling
+	 * me I'm in UTC, so screw it, I guess I was after all. 
+	 *
+	 * This could maybe be done with a parameter at least? */
+	ktime_get_real_ts64(&now);
+	time64_to_tm(now.tv_sec, 0, &tm_now);
+	
+	switch(tm_now.tm_wday){
+		case 0:
+			sprintf(msg, "No, but it's still the weekend!\n");
+			break;
+		case 6:
+			sprintf(msg, "You just missed it!\n");
+			break;
+		case 5:
+			sprintf(msg, "IT IS!\n");
+			break;
+		default:
+			sprintf(msg, "Nope.\n");
+			break;
+	}
 
 	if (!*(msg_ptr + *offset)){
 			// End of message
@@ -186,7 +190,7 @@ static ssize_t device_read(struct file *filp,
 	}
 
 	*offset += bytes_read;
-	
+
 	// Most read functions return the number of bytes put into the buffer.
 	return bytes_read;
 }
