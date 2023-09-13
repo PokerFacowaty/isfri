@@ -21,6 +21,12 @@ After the module has been added, you can use it by simply using `cat` on the new
 cat /dev/isfri
 ```
 
+The module will then "respond" with a proper message according to the current day of the week:
+- Friday: "IT IS!"
+- Saturday: "You just missed it!"
+- Sunday: "No, but it's still the weekend!"
+- Any other day: "Nope."
+
 If you want to remove the module from the kernel, simply use
 ```bash
 sudo rmmod isfri
