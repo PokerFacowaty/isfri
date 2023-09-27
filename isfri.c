@@ -54,7 +54,7 @@ static struct file_operations chardev_fops = {
 	.release = device_release,
 };
 
-static char *isfri_devnode(struct device *dev, umode_t *mode){
+static char *isfri_devnode(const struct device *dev, umode_t *mode){
 	if (mode) *mode = 0666;
 	return NULL;
 }
